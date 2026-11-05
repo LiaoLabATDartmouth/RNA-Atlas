@@ -1,6 +1,6 @@
 # RNA Atlas for Liao lab members
 
-**Download this release:** Open [`RNAAtlas-GitHub-source.zip`](RNAAtlas-GitHub-source.zip) and download that file, then unzip it on your Mac. The detailed instructions below apply to the extracted `RNAAtlas-GitHub-source/` folder. Do not use GitHub's **Code → Download ZIP** button unless you also unzip the nested `RNAAtlas-GitHub-source.zip` inside it. You can check the downloaded archive against [`RNAAtlas-GitHub-source.zip.sha256`](RNAAtlas-GitHub-source.zip.sha256). The source code and small Candida example are inside the archive rather than individually browsable in this repository.
+**Download this release:** Open [`RNAAtlas-GitHub-source.zip`](RNAAtlas-GitHub-source.zip) and download that file, then unzip it on your Mac. If GitHub shows 404, ask the lab maintainer for access to this private repository. The detailed instructions below apply to the extracted `RNAAtlas-GitHub-source/` folder. Do not use GitHub's **Code → Download ZIP** button unless you also unzip the nested `RNAAtlas-GitHub-source.zip` inside it. You can check the downloaded archive against [`RNAAtlas-GitHub-source.zip.sha256`](RNAAtlas-GitHub-source.zip.sha256). The source code and small Candida example are inside the archive rather than individually browsable in this repository.
 
 RNA Atlas is a **personal browser app for macOS**. It opens on your own computer, connects to Dartmouth Discovery as **you**, and submits Slurm jobs under **your NetID**. Your FASTQs, job logs, temporary workspace, and results stay in your own DartFS workspace. The lab's `Service_Account/RNAseq_atlas` supplies shared, read-only genome indexes and software; it is **not** where your projects run.
 
@@ -10,14 +10,32 @@ This repository is intended to remain **private to the lab**. Do not put patient
 
 You need a Mac with Python 3.9 or newer, a Discovery account, access to Dartmouth's network or VPN, and a writable DartFS folder under `/dartfs/rc/lab/L/LiaoC/` that you own **outside** `Service_Account`. You also need read/traverse access to the lab's shared `Service_Account/RNAseq_atlas/shared/references` and `shared/runtime_v2` assets. If an access check fails, ask the lab maintainer to verify those permissions; do not use someone else's credentials.
 
-On your Mac, obtain your own Kerberos ticket and confirm your normal Discovery SSH login in Terminal, following Dartmouth's current instructions. For example, if Kerberos is configured on your Mac:
+Before launching RNA Atlas, complete these steps in **Terminal on your own Mac**. Replace every `YOUR_NETID` below with your Dartmouth NetID (without angle brackets); use only your own account. Dartmouth requires the campus network or VPN for [Discovery SSH access](https://rc.dartmouth.edu/hpc/intro-to-hpc/logging-into-the-cluster/).
+
+1. Connect to Dartmouth's campus network or VPN. Obtain a Kerberos ticket and confirm that it is current:
 
 ```bash
-kinit <your-netid>@KIEWIT.DARTMOUTH.EDU
-ssh <your-netid>@discovery.dartmouth.edu
+kinit YOUR_NETID@KIEWIT.DARTMOUTH.EDU
+klist
 ```
 
-Verify Discovery's SSH host identity through Dartmouth's instructions before accepting a new host key. Exit the SSH session before launching the app. **Never type your Discovery password into the RNA Atlas browser page**; the app does not collect it.
+`kinit` may ask for your Dartmouth password **in Terminal**; its characters will not appear as you type. `klist` must show an unexpired ticket for your own `YOUR_NETID@KIEWIT.DARTMOUTH.EDU` principal. If it does not, stop and resolve your Kerberos access before opening the app.
+
+2. Make one interactive SSH connection to Discovery so you can verify its identity. If SSH displays an unfamiliar host-key fingerprint, confirm it with [Dartmouth Research Computing](https://rc.dartmouth.edu/hpc/discovery-overview/) before accepting it; do not guess or bypass a host-key warning.
+
+```bash
+ssh -o GSSAPIAuthentication=yes -o GSSAPIDelegateCredentials=yes YOUR_NETID@discovery.dartmouth.edu
+```
+
+At the Discovery prompt, run `id -un` and `klist`. Confirm that `id -un` prints **your NetID** and `klist` shows a valid **delegated** ticket on Discovery. Type `exit` to return to your Mac.
+
+3. Confirm the *non-interactive* connection that RNA Atlas actually uses:
+
+```bash
+ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o GSSAPIAuthentication=yes -o GSSAPIDelegateCredentials=yes YOUR_NETID@discovery.dartmouth.edu 'id -un; klist'
+```
+
+This must finish without a password prompt, print your NetID, and show a valid remote ticket. If it fails, **do not launch the app yet**: check VPN and `klist`, then ask the lab maintainer or Dartmouth Research Computing for help with SSH/GSSAPI access. RNA Atlas cannot prompt for an SSH password because its connection uses `BatchMode=yes`. Renew an expired ticket with `kinit` before later sessions. **Never enter your password in the RNA Atlas browser page or send it to the lab**; the app does not collect it.
 
 ## 2. Download and launch
 
