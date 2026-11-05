@@ -1,8 +1,10 @@
 # RNA Atlas for Liao lab members
 
-**Download this release:** Open [`RNAAtlas-GitHub-source.zip`](RNAAtlas-GitHub-source.zip) and download that file, then unzip it on your Mac. If GitHub shows 404, ask the lab maintainer for access to this private repository. The detailed instructions below apply to the extracted `RNAAtlas-GitHub-source/` folder. Do not use GitHub's **Code → Download ZIP** button unless you also unzip the nested `RNAAtlas-GitHub-source.zip` inside it. You can check the downloaded archive against [`RNAAtlas-GitHub-source.zip.sha256`](RNAAtlas-GitHub-source.zip.sha256). The source code and small Candida example are inside the archive rather than individually browsable in this repository.
+Download `RNAAtlas-GitHub-source.zip` from the private lab repository and extract it on your Mac. If GitHub shows 404, ask the lab maintainer for repository access. GitHub's **Code → Download ZIP** downloads an outer repository ZIP; extract the `RNAAtlas-GitHub-source.zip` inside it as well.
 
-RNA Atlas is a **personal browser app for macOS**. It opens on your own computer, connects to Dartmouth Discovery as **you**, and submits Slurm jobs under **your NetID**. Your FASTQs, job logs, temporary workspace, and results stay in your own DartFS workspace. The lab's `Service_Account/RNAseq_atlas` supplies shared, read-only genome indexes and software; it is **not** where your projects run.
+RNA Atlas is a **personal browser app for macOS**. It opens on your own computer and prepares a Slurm script in your DartFS project. **You then log in to Discovery with your own password and submit that script under your NetID.** Your FASTQs, job logs, temporary workspace, and results stay in your own DartFS workspace. The lab's `Service_Account/RNAseq_atlas` supplies shared, read-only genome indexes and software; it is **not** where your projects run.
+
+**Use the personal app for lab work.** Its header identifies your own Discovery account and its button says **Create Slurm job**. That button prepares one script, then displays the script location and exact command to run on Discovery; it does **not** submit the job. If a page instead says **service session** and **Submit Slurm job**, you are viewing the separately restricted administrator QA app. Its button submits immediately under the service account. Do not use that page for member projects or share its private URL or token.
 
 This repository is intended to remain **private to the lab**. Do not put patient information, passwords, SSH keys, Kerberos tickets, or your research FASTQs in GitHub. The only reads intentionally included here are the small Candida example described below.
 
@@ -21,25 +23,17 @@ klist
 
 `kinit` may ask for your Dartmouth password **in Terminal**; its characters will not appear as you type. `klist` must show an unexpired ticket for your own `YOUR_NETID@KIEWIT.DARTMOUTH.EDU` principal. If it does not, stop and resolve your Kerberos access before opening the app.
 
-2. Make one interactive SSH connection to Discovery so you can verify its identity. If SSH displays an unfamiliar host-key fingerprint, confirm it with [Dartmouth Research Computing](https://rc.dartmouth.edu/hpc/discovery-overview/) before accepting it; do not guess or bypass a host-key warning.
+2. Verify the non-interactive SSH connection used **only to prepare and browse** your project. If SSH displays an unfamiliar host-key fingerprint, confirm it with [Dartmouth Research Computing](https://rc.dartmouth.edu/hpc/discovery-overview/) before accepting it; do not guess or bypass a host-key warning.
 
 ```bash
-ssh -o GSSAPIAuthentication=yes -o GSSAPIDelegateCredentials=yes YOUR_NETID@discovery.dartmouth.edu
+ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o GSSAPIAuthentication=yes -o GSSAPIDelegateCredentials=yes -o PubkeyAuthentication=no YOUR_NETID@discovery.dartmouth.edu 'id -un; klist'
 ```
 
-At the Discovery prompt, run `id -un` and `klist`. Confirm that `id -un` prints **your NetID** and `klist` shows a valid **delegated** ticket on Discovery. Type `exit` to return to your Mac.
-
-3. Confirm the *non-interactive* connection that RNA Atlas actually uses:
-
-```bash
-ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o GSSAPIAuthentication=yes -o GSSAPIDelegateCredentials=yes YOUR_NETID@discovery.dartmouth.edu 'id -un; klist'
-```
-
-This must finish without a password prompt, print your NetID, and show a valid remote ticket. If it fails, **do not launch the app yet**: check VPN and `klist`, then ask the lab maintainer or Dartmouth Research Computing for help with SSH/GSSAPI access. RNA Atlas cannot prompt for an SSH password because its connection uses `BatchMode=yes`. Renew an expired ticket with `kinit` before later sessions. **Never enter your password in the RNA Atlas browser page or send it to the lab**; the app does not collect it.
+This must finish without a password prompt, print your NetID, and show a valid remote ticket. If the host key is new, verify its fingerprint using Dartmouth's instructions in an interactive Terminal session before retrying this strict check. If it fails, check VPN and `klist`, then ask the lab maintainer or Dartmouth Research Computing for help. The browser's project-preparation connection uses `BatchMode=yes` and cannot prompt for a password. Renew an expired Mac ticket with `kinit` before a later browser session. **Never enter your password in the RNA Atlas browser page or send it to the lab**; the app does not collect it.
 
 ## 2. Download and launch
 
-Download the release archive linked above, unzip it into a folder on your Mac, then double-click `mac/start_personal.command` inside the extracted folder. On first launch, the script installs its pinned local Python packages, asks for your NetID and your own DartFS workspace path, checks Discovery and shared-asset access, and opens the browser on `127.0.0.1` with a private URL token. Keep the launcher window open while using the app; closing it stops the browser server but does not cancel submitted Slurm jobs.
+From the extracted `RNAAtlas-GitHub-source/` folder, double-click `mac/start_personal.command`. On first launch, the script installs its pinned local Python packages, asks for your NetID and your own DartFS workspace path, checks Discovery and shared-asset access, and opens the browser on `127.0.0.1` with a private URL token. Keep the launcher window open while using the app; closing it stops the browser server but does not cancel submitted Slurm jobs.
 
 For a diagnostic check from Terminal instead of opening the page:
 
@@ -73,9 +67,9 @@ Use `sample_id` and `condition` columns in `sample_sheet.tsv`; the app offers a 
 
 In the browser, click **Open project folder**, choose the prepared folder, select a preinstalled reference, and click **Load data**. The app compares the sample sheet with paired-read filenames and samples up to 2,000 read pairs per sample. The default complete-pair validation checks the full FASTQ files when analysis begins. Resolve any missing, mismatched, corrupt, or unreadable inputs before submitting.
 
-## 4. Choose one analysis and submit
+## 4. Choose one analysis and prepare its script
 
-Choose **one** module per Slurm job. The browser shows the input, output, and key settings for the selected module:
+Choose **one** module per Slurm job. To run all four analyses, create and submit four separate jobs. Each job handles all samples, input checks, QC, and its selected analysis; you do not submit separate sample or preprocessing jobs. The browser shows the input, output, and key settings for the selected module:
 
 | Module | Additional input | Main results |
 | --- | --- | --- |
@@ -84,16 +78,26 @@ Choose **one** module per Slurm job. The browser shows the input, output, and ke
 | STAR + GATK ASE | Compatible DNA genotype VCF (with sample map if needed) | Per-allele RNA read counts at eligible DNA heterozygous sites |
 | Trinity de novo transcriptome | Paired RNA reads; no genome required for assembly | Transcript FASTA, assembly statistics, read-representation summary |
 
-Review trimming, library strandedness, any module-specific filters, and the selected reference. The displayed biological-ploidy recommendation comes from the reference manifest; it does **not** measure your sample's ploidy or detect aneuploidy. If your sample's known ploidy differs, consult the lab maintainer before SNV/ASE analysis. The standard resource form permits 1–32 CPUs, 8–256 GB RAM, and 1 hour–30 days of walltime; your Slurm account or available nodes may be more restrictive. Click **Review and submit → Validate project**, then **Submit Slurm job**.
+Review trimming, library strandedness, any module-specific filters, and the selected reference. The displayed biological-ploidy recommendation comes from the reference manifest; it does **not** measure your sample's ploidy or detect aneuploidy. If your sample's known ploidy differs, consult the lab maintainer before SNV/ASE analysis. The standard resource form permits 1–32 CPUs, 8–256 GB RAM, and 1 hour–30 days of walltime; your Slurm account or available nodes may be more restrictive. Click **Review and create job → Validate project**, then **Create Slurm job**. **This creates the script but does not submit the job.**
+
+The browser shows the exact script path and a one-line submission command. The script is at `<personal-workspace>/<project_folder>/results/<module>/<job-id>/rnaseq.sbatch`; the command uses the same job ID. In a **new Terminal session on your Mac**, log in with your own Discovery password, rather than forwarding the Mac ticket:
+
+```bash
+ssh -o GSSAPIAuthentication=no -o PubkeyAuthentication=no YOUR_NETID@discovery.dartmouth.edu
+```
+
+On Discovery, run `id -un` and `klist`. Confirm your NetID and a valid **Discovery-side** ticket. If `klist` reports no ticket, run `kinit YOUR_NETID@KIEWIT.DARTMOUTH.EDU` **there in your own Terminal** and check again. Then copy the exact `python3 .../scripts/submit_prepared.py <job-id>` command from RNA Atlas and run it on Discovery. This helper verifies the unchanged prepared script and configuration, calls `sbatch`, and records the Slurm job ID so the browser can track the queue. Do not run the `.sbatch` file with `bash`, and do not submit the same prepared job twice. You can type `exit` after Slurm accepts the job.
 
 Each job writes to `<personal-workspace>/<project_folder>/results/<module>/<job-id>/`, including status and logs. Loading the same folder later retains earlier results. Result bundles up to 2 GB are available as ZIP downloads for three days after completion. Larger bundles and all underlying results remain on DartFS; the three-day browser window is **not** a DartFS deletion policy. Monitor your quota and follow your lab's retention rules.
 
+Closing the browser or leaving Discovery after `sbatch` succeeds does **not** cancel the Slurm job. Renew the Mac ticket and click **Reconnect** if you need browser status updates later. Password-based login avoids the [specific macOS forwarded-ticket renewability problem](https://services.dartmouth.edu/TDClient/1806/Portal/KB/PrintArticle?ID=89203), but it does **not** by itself guarantee that a compute-node ticket will last through queue wait and runtime. The job checks for a ticket at startup; it does not renew one automatically. Until a password-submitted compute job and its credential lifetime have been verified on Discovery, do not assume long jobs are safe from DartFS ticket expiry.
+
 ## Try the included Candida example
 
-Copy `examples/Calbicans_WT_YL_HL/` from the extracted archive into your **own** DartFS workspace as one project folder. It has four paired samples (WT01, WT02, YL01, YL02), 20,000 read pairs each, a ready sample sheet, and input checksums. Open that copied folder, choose the FungiDB Release 71 Candida SC5314 reference, and try STAR + DESeq2 with WT as the reference condition. Results go into **your copy's** `results/differential_expression/<job-id>/`, not the service account or GitHub. This example tests input/output plumbing only; the small subset has no biological statistical power and no DNA VCF for ASE. See `examples/Calbicans_WT_YL_HL/README.md` inside the archive.
+Copy `examples/Calbicans_WT_YL_HL/` into your **own** DartFS workspace as one project folder. It has four paired samples (WT01, WT02, YL01, YL02), 20,000 read pairs each, a ready sample sheet, and input checksums. Open that copied folder, choose the FungiDB Release 71 Candida SC5314 reference, and try STAR + DESeq2 with WT as the reference condition. Results go into **your copy's** `results/differential_expression/<job-id>/`, not the service account or GitHub. This example tests input/output plumbing only; the small subset has no biological statistical power and no DNA VCF for ASE. See [`examples/Calbicans_WT_YL_HL/README.md`](examples/Calbicans_WT_YL_HL/README.md).
 
 ## What this download does not include
 
 The repo contains `mac/` (browser app and personal launcher), `discovery/` (pipeline code that the launcher copies to your private workspace), the small Candida example, and `SOURCE_SHA256SUMS.txt`. It **does not** contain the large reference genomes/STAR indexes, software runtimes, your reads, completed results, or anyone's credentials. The launcher checks access to shared reference/runtime files before opening the page.
 
-**Current validation limit:** local tests and isolated service-account QA cover DE, RNA SNV, DNA-informed ASE, and a small Trinity run, but a full job under a lab member's personal identity has **not** yet been verified. Long-job ticket renewal and immutable per-job code releases also remain to be implemented. See `mac/PERSONAL.md` inside the archive for the maintainer's handoff audit. Do not assume this first package is production-validated for every member or use RNA-derived variants for clinical decisions.
+**Current validation limit:** local tests and isolated service-account QA cover DE, RNA SNV, DNA-informed ASE, and a small Trinity run, but a password-submitted job under a lab member's personal identity has **not** yet been verified. Long-job ticket renewal and immutable per-job code releases also remain to be implemented. See [`mac/PERSONAL.md`](mac/PERSONAL.md) for the maintainer's handoff audit. Do not assume this first package is production-validated for every member or use RNA-derived variants for clinical decisions.
