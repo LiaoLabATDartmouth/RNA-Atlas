@@ -62,6 +62,8 @@ In the browser, click **Open project folder**, choose the prepared folder, selec
 
 ## 4. Choose one analysis and prepare its script
 
+**Dh68 ploidy:** The lab confirms that its Dh68 strain is haploid (1n), matching the reference's 1n setting. This does not establish the ploidy of a different sample: *Debaryomyces hansenii* also has diploid strains ([Jacques et al. 2010](https://pmc.ncbi.nlm.nih.gov/articles/PMC2837983/)). Confirm the sample's identity and ploidy before SNV or ASE interpretation; Trinity does not use ploidy.
+
 Choose **one** module per Slurm job. To run all four analyses, create and submit four separate jobs. Each job handles all samples, input checks, QC, and its selected analysis; you do not submit separate sample or preprocessing jobs. The browser shows the input, output, and key settings for the selected module:
 
 | Module | Additional input | Main results |
