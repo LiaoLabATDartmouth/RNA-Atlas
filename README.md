@@ -2,7 +2,7 @@
 
 Download `RNAAtlas-GitHub-source.zip` from the private lab repository and extract it on your Mac. If GitHub shows 404, ask the lab maintainer for repository access. GitHub's **Code → Download ZIP** downloads an outer repository ZIP; extract the `RNAAtlas-GitHub-source.zip` inside it as well.
 
-RNA Atlas is a **personal browser app for macOS**. It opens on your own computer and prepares a Slurm script in your DartFS project. **You then log in to Discovery with your own password and submit that script under your NetID.** Your FASTQs, job logs, temporary workspace, and results stay in your own DartFS workspace. The lab's `Service_Account/RNAseq_atlas` supplies shared, read-only genome indexes and software; it is **not** where your projects run.
+RNA Atlas is a **personal browser app for macOS**. It opens on your own computer and prepares a Slurm script in your DartFS project. At launch, you enter your Discovery password **in Terminal** once; the app reuses that SSH connection to browse and prepare your project. You then open a Discovery shell through the same connection and submit the prepared script under your NetID. Your FASTQs, job logs, temporary workspace, and results stay in your own DartFS workspace. The lab's `Service_Account/RNAseq_atlas` supplies shared, read-only genome indexes and software; it is **not** where your projects run.
 
 **Use the personal app for lab work.** Its header identifies your own Discovery account and its button says **Create Slurm job**. That button prepares one script, then displays the script location and exact command to run on Discovery; it does **not** submit the job. If a page instead says **service session** and **Submit Slurm job**, you are viewing the separately restricted administrator QA app. Its button submits immediately under the service account. Do not use that page for member projects or share its private URL or token.
 
@@ -12,28 +12,13 @@ This repository is intended to remain **private to the lab**. Do not put patient
 
 You need a Mac with Python 3.9 or newer, a Discovery account, access to Dartmouth's network or VPN, and a writable DartFS folder under `/dartfs/rc/lab/L/LiaoC/` that you own **outside** `Service_Account`. You also need read/traverse access to the lab's shared `Service_Account/RNAseq_atlas/shared/references` and `shared/runtime_v2` assets. If an access check fails, ask the lab maintainer to verify those permissions; do not use someone else's credentials.
 
-Before launching RNA Atlas, complete these steps in **Terminal on your own Mac**. Replace every `YOUR_NETID` below with your Dartmouth NetID (without angle brackets); use only your own account. Dartmouth requires the campus network or VPN for [Discovery SSH access](https://rc.dartmouth.edu/hpc/intro-to-hpc/logging-into-the-cluster/).
+Connect to Dartmouth's campus network or VPN for [Discovery SSH access](https://rc.dartmouth.edu/hpc/intro-to-hpc/logging-into-the-cluster/). Use your own Dartmouth NetID and a DartFS workspace you own. You do **not** need to run `kinit` on your Mac or test a GSSAPI SSH command before opening the app.
 
-1. Connect to Dartmouth's campus network or VPN. Obtain a Kerberos ticket and confirm that it is current:
-
-```bash
-kinit YOUR_NETID@KIEWIT.DARTMOUTH.EDU
-klist
-```
-
-`kinit` may ask for your Dartmouth password **in Terminal**; its characters will not appear as you type. `klist` must show an unexpired ticket for your own `YOUR_NETID@KIEWIT.DARTMOUTH.EDU` principal. If it does not, stop and resolve your Kerberos access before opening the app.
-
-2. Verify the non-interactive SSH connection used **only to prepare and browse** your project. If SSH displays an unfamiliar host-key fingerprint, confirm it with [Dartmouth Research Computing](https://rc.dartmouth.edu/hpc/discovery-overview/) before accepting it; do not guess or bypass a host-key warning.
-
-```bash
-ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o GSSAPIAuthentication=yes -o GSSAPIDelegateCredentials=yes -o PubkeyAuthentication=no YOUR_NETID@discovery.dartmouth.edu 'id -un; klist'
-```
-
-This must finish without a password prompt, print your NetID, and show a valid remote ticket. If the host key is new, verify its fingerprint using Dartmouth's instructions in an interactive Terminal session before retrying this strict check. If it fails, check VPN and `klist`, then ask the lab maintainer or Dartmouth Research Computing for help. The browser's project-preparation connection uses `BatchMode=yes` and cannot prompt for a password. Renew an expired Mac ticket with `kinit` before a later browser session. **Never enter your password in the RNA Atlas browser page or send it to the lab**; the app does not collect it.
+The launcher starts a reusable SSH connection and asks for your Discovery password **in its Terminal window**, not in the browser. If SSH shows a new host-key fingerprint, verify it with [Dartmouth Research Computing](https://rc.dartmouth.edu/hpc/discovery-overview/) **before** accepting it. Never accept an unfamiliar or changed key just to continue. The launcher then checks that Discovery reports your NetID, has a valid **Discovery-side** Kerberos ticket, and can read your DartFS workspace and the shared app assets. A password login alone does not prove DartFS ticket availability. If this check fails, stop and resolve your Discovery-side access; the browser will not open on an unverified connection. **Never enter your password in the RNA Atlas browser page or send it to the lab**; the app does not collect or save it.
 
 ## 2. Download and launch
 
-From the extracted `RNAAtlas-GitHub-source/` folder, double-click `mac/start_personal.command`. On first launch, the script installs its pinned local Python packages, asks for your NetID and your own DartFS workspace path, checks Discovery and shared-asset access, and opens the browser on `127.0.0.1` with a private URL token. Keep the launcher window open while using the app; closing it stops the browser server but does not cancel submitted Slurm jobs.
+From the extracted `RNAAtlas-GitHub-source/` folder, double-click `mac/start_personal.command`. On first launch, the script installs its pinned local Python packages, asks for your NetID and your own DartFS workspace path, then prompts for your Discovery password in Terminal. After the access checks pass, it opens the browser on `127.0.0.1` with a private URL token. Keep the launcher window open while using the app; closing it stops the browser server but does not cancel submitted Slurm jobs. The reusable SSH connection may also end after eight idle hours or when the network changes.
 
 For a diagnostic check from Terminal instead of opening the page:
 
@@ -43,7 +28,7 @@ scripts/setup_mac.sh
 .venv-web/bin/python personal_launcher.py --check
 ```
 
-The first launch creates `~/.rnaseq-atlas/personal.json` and a private browser token on **your Mac**. To change your NetID or DartFS workspace later, run `.venv-web/bin/python personal_launcher.py --configure`. Do not share the token, expose the localhost port, or commit `~/.rnaseq-atlas/`.
+The first launch creates `~/.rnaseq-atlas/personal.json`, a private browser token, and a user-only SSH connection socket on **your Mac**. To change your NetID or DartFS workspace later, run `.venv-web/bin/python personal_launcher.py --configure`. If the page shows **Discovery disconnected**, double-click `mac/connect_discovery.command`, enter your password in its Terminal window, then click **Reconnect** in the browser. Do not share the token, expose the localhost port, or commit `~/.rnaseq-atlas/`.
 
 ## 3. Prepare a project in your own DartFS workspace
 
@@ -80,17 +65,17 @@ Choose **one** module per Slurm job. To run all four analyses, create and submit
 
 Review trimming, library strandedness, any module-specific filters, and the selected reference. The displayed biological-ploidy recommendation comes from the reference manifest; it does **not** measure your sample's ploidy or detect aneuploidy. If your sample's known ploidy differs, consult the lab maintainer before SNV/ASE analysis. The standard resource form permits 1–32 CPUs, 8–256 GB RAM, and 1 hour–30 days of walltime; your Slurm account or available nodes may be more restrictive. Click **Review and create job → Validate project**, then **Create Slurm job**. **This creates the script but does not submit the job.**
 
-The browser shows the exact script path and a one-line submission command. The script is at `<personal-workspace>/<project_folder>/results/<module>/<job-id>/rnaseq.sbatch`; the command uses the same job ID. In a **new Terminal session on your Mac**, log in with your own Discovery password, rather than forwarding the Mac ticket:
+The browser shows the exact script path and a one-line submission command. The script is at `<personal-workspace>/<project_folder>/results/<module>/<job-id>/rnaseq.sbatch`; the command uses the same job ID. In **Terminal on your Mac**, use the exact SSH command shown in the browser to open a Discovery shell through the existing connection. For your NetID, it has this form:
 
 ```bash
-ssh -o GSSAPIAuthentication=no -o PubkeyAuthentication=no YOUR_NETID@discovery.dartmouth.edu
+ssh -S ~/.rnaseq-atlas/discovery-YOUR_NETID.sock -o BatchMode=yes -o ControlMaster=no -o GSSAPIAuthentication=no -o PubkeyAuthentication=no -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no YOUR_NETID@discovery.dartmouth.edu
 ```
 
-On Discovery, run `id -un` and `klist`. Confirm your NetID and a valid **Discovery-side** ticket. If `klist` reports no ticket, run `kinit YOUR_NETID@KIEWIT.DARTMOUTH.EDU` **there in your own Terminal** and check again. Then copy the exact `python3 .../scripts/submit_prepared.py <job-id>` command from RNA Atlas and run it on Discovery. This helper verifies the unchanged prepared script and configuration, calls `sbatch`, and records the Slurm job ID so the browser can track the queue. Do not run the `.sbatch` file with `bash`, and do not submit the same prepared job twice. You can type `exit` after Slurm accepts the job.
+This reuses the password-authenticated login and normally does **not** ask for a second password. If it fails, use `mac/connect_discovery.command` to reauthenticate; do not bypass the host-key check. On Discovery, run `id -un` and `klist` and confirm your NetID and a valid **Discovery-side** ticket. Then copy the exact `python3 .../scripts/submit_prepared.py <job-id>` command from RNA Atlas and run it on Discovery. This helper verifies the unchanged prepared script and configuration, calls `sbatch`, and records the Slurm job ID so the browser can track the queue. Do not run the `.sbatch` file with `bash`, and do not submit the same prepared job twice. You can type `exit` after Slurm accepts the job.
 
 Each job writes to `<personal-workspace>/<project_folder>/results/<module>/<job-id>/`, including status and logs. Loading the same folder later retains earlier results. Result bundles up to 2 GB are available as ZIP downloads for three days after completion. Larger bundles and all underlying results remain on DartFS; the three-day browser window is **not** a DartFS deletion policy. Monitor your quota and follow your lab's retention rules.
 
-Closing the browser or leaving Discovery after `sbatch` succeeds does **not** cancel the Slurm job. Renew the Mac ticket and click **Reconnect** if you need browser status updates later. Password-based login avoids the [specific macOS forwarded-ticket renewability problem](https://services.dartmouth.edu/TDClient/1806/Portal/KB/PrintArticle?ID=89203), but it does **not** by itself guarantee that a compute-node ticket will last through queue wait and runtime. The job checks for a ticket at startup; it does not renew one automatically. Until a password-submitted compute job and its credential lifetime have been verified on Discovery, do not assume long jobs are safe from DartFS ticket expiry.
+Closing the browser or leaving Discovery after `sbatch` succeeds does **not** cancel the Slurm job. Reconnect using `mac/connect_discovery.command` if you need browser status updates later. Password-based login avoids the [specific macOS forwarded-ticket renewability problem](https://services.dartmouth.edu/TDClient/1806/Portal/KB/PrintArticle?ID=89203), but it does **not** by itself guarantee that a compute-node ticket will last through queue wait and runtime. The job checks for a ticket at startup; it does not renew one automatically. Until a password-submitted compute job and its credential lifetime have been verified on Discovery, do not assume long jobs are safe from DartFS ticket expiry.
 
 ## Try the included Candida example
 
