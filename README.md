@@ -36,20 +36,24 @@ The first launch creates `~/.rnaseq-atlas/personal.json`, a private browser toke
 
 ## 3. Prepare a project in your own DartFS workspace
 
-Create one folder for each study directly under `<personal-workspace>/`. The folder's name becomes the project name; you do **not** need a folder literally named `projects`. Put inputs in its `datasets/` subfolder before opening it in RNA Atlas:
+The launcher creates `<personal-workspace>/projects/` automatically. Create one folder for each study inside it; that folder's name becomes the project name. Put inputs in its `datasets/` subfolder before opening it in RNA Atlas. Relaunching the app refreshes `app/` and `scripts/` code without replacing existing project folders or results; `shared/` keeps the job records needed to track previous runs. If you used an older release that kept a project directly under `<personal-workspace>/`, move that project folder into `projects/` yourself before opening it. The launcher does not move or overwrite it:
 
 ```text
 <personal-workspace>/
-└── <project_folder>/
-    ├── datasets/
-    │   ├── meta_data/sample_sheet.tsv
-    │   └── raw_data/
-    │       ├── S1/S1_1.fq.gz
-    │       ├── S1/S1_2.fq.gz
-    │       ├── S2/S2_1.fq.gz
-    │       └── S2/S2_2.fq.gz
-    ├── genotype_VCF/dna_genotypes.vcf.gz   # only for ASE
-    └── results/                            # created by RNA Atlas
+├── app/                                    # refreshed launcher code
+├── scripts/                                # refreshed launcher code
+├── shared/                                 # persistent job records
+└── projects/                               # created by the launcher
+    └── <project_folder>/
+        ├── datasets/
+        │   ├── meta_data/sample_sheet.tsv
+        │   └── raw_data/
+        │       ├── S1/S1_1.fq.gz
+        │       ├── S1/S1_2.fq.gz
+        │       ├── S2/S2_1.fq.gz
+        │       └── S2/S2_2.fq.gz
+        ├── genotype_VCF/dna_genotypes.vcf.gz   # only for ASE
+        └── results/                            # created by RNA Atlas
 ```
 
 Use `sample_id` and `condition` columns in `sample_sheet.tsv`; the app offers a downloadable template. Make a `raw_data/<sample_id>/` folder for every sheet row. Name paired reads `<sample_id>_1.fq.gz` and `<sample_id>_2.fq.gz`; `.fastq.gz` also works. For ASE, add a pre-called **DNA genotype VCF** under `genotype_VCF/` before submission. If RNA and VCF sample names differ, also add `genotype_VCF/ase_genotype_map.tsv`. Do not use the RNA SNV output as a substitute for DNA genotypes.
@@ -69,7 +73,7 @@ Choose **one** module per Slurm job. To run all four analyses, create and submit
 
 Review trimming, library strandedness, any module-specific filters, and the selected reference. The displayed biological-ploidy recommendation comes from the reference manifest; it does **not** measure your sample's ploidy or detect aneuploidy. If your sample's known ploidy differs, consult the lab maintainer before SNV/ASE analysis. The standard resource form permits 1–32 CPUs, 8–256 GB RAM, and 1 hour–30 days of walltime; your Slurm account or available nodes may be more restrictive. Click **Review and create job → Validate project**, then **Create Slurm job**. **This creates the script but does not submit the job.**
 
-The browser shows the exact script path and a one-line submission command. The script is at `<personal-workspace>/<project_folder>/results/<module>/<job-id>/rnaseq.sbatch`; the command uses the same job ID. In **Terminal on your Mac**, use the exact SSH command shown in the browser to open a Discovery shell through the existing connection. For your NetID, it has this form:
+The browser shows the exact script path and a one-line submission command. The script is at `<personal-workspace>/projects/<project_folder>/results/<module>/<job-id>/rnaseq.sbatch`; the command uses the same job ID. In **Terminal on your Mac**, use the exact SSH command shown in the browser to open a Discovery shell through the existing connection. For your NetID, it has this form:
 
 ```bash
 ssh -S ~/.rnaseq-atlas/discovery-YOUR_NETID.sock -o BatchMode=yes -o ControlMaster=no -o GSSAPIAuthentication=no -o PubkeyAuthentication=no -o PasswordAuthentication=no -o KbdInteractiveAuthentication=no YOUR_NETID@discovery.dartmouth.edu
@@ -77,13 +81,13 @@ ssh -S ~/.rnaseq-atlas/discovery-YOUR_NETID.sock -o BatchMode=yes -o ControlMast
 
 This reuses the password-authenticated login and normally does **not** ask for a second password. If it fails, use `mac/connect_discovery.command` to reauthenticate; do not bypass the host-key check. On Discovery, run `id -un` and `klist` and confirm your NetID and a valid **Discovery-side** ticket. Then copy the exact `python3 .../scripts/submit_prepared.py <job-id>` command from RNA Atlas and run it on Discovery. This helper verifies the unchanged prepared script, configuration, and pipeline-code snapshot, calls `sbatch`, and records the Slurm job ID so the browser can track the queue. Do not run the `.sbatch` file with `bash`, and do not submit the same prepared job twice. You can type `exit` after Slurm accepts the job. Each job's read-only `_code/` snapshot is checksum-checked again on the compute node; do not edit or delete it while the job is queued or running. Relaunching the app does not replace code used by an already prepared job.
 
-Each job writes to `<personal-workspace>/<project_folder>/results/<module>/<job-id>/`, including status and logs. Loading the same folder later retains earlier results. Result bundles up to 2 GB are available as ZIP downloads for three days after completion. Larger bundles and all underlying results remain on DartFS; the three-day browser window is **not** a DartFS deletion policy. Monitor your quota and follow your lab's retention rules.
+Each job writes to `<personal-workspace>/projects/<project_folder>/results/<module>/<job-id>/`, including status and logs. Loading the same folder later retains earlier results. Result bundles up to 2 GB are available as ZIP downloads for three days after completion. Larger bundles and all underlying results remain on DartFS; the three-day browser window is **not** a DartFS deletion policy. Monitor your quota and follow your lab's retention rules.
 
 Closing the browser or leaving Discovery after `sbatch` succeeds does **not** cancel the Slurm job. Reconnect using `mac/connect_discovery.command` if you need browser status updates later. Password-based login avoids the [specific macOS forwarded-ticket renewability problem](https://services.dartmouth.edu/TDClient/1806/Portal/KB/PrintArticle?ID=89203), but it does **not** by itself guarantee that a compute-node ticket will last through queue wait and runtime. The job checks for a ticket at startup; it does not renew one automatically. Until a password-submitted compute job and its credential lifetime have been verified on Discovery, do not assume long jobs are safe from DartFS ticket expiry.
 
 ## Try the included Candida example
 
-Copy `examples/Calbicans_WT_YL_HL/` from the extracted archive into your **own** DartFS workspace as one project folder. It has four paired samples (WT01, WT02, YL01, YL02), 20,000 read pairs each, a ready sample sheet, and input checksums. Open that copied folder, choose the FungiDB Release 71 Candida SC5314 reference, and try STAR + DESeq2 with WT as the reference condition. Results go into **your copy's** `results/differential_expression/<job-id>/`, not the service account or GitHub. This example tests input/output plumbing only; the small subset has no biological statistical power and no DNA VCF for ASE. See `examples/Calbicans_WT_YL_HL/README.md` inside the extracted archive.
+Copy `examples/Calbicans_WT_YL_HL/` from the extracted archive into your **own** DartFS workspace's `projects/` folder as one project folder. It has four paired samples (WT01, WT02, YL01, YL02), 20,000 read pairs each, a ready sample sheet, and input checksums. Open that copied folder, choose the FungiDB Release 71 Candida SC5314 reference, and try STAR + DESeq2 with WT as the reference condition. Results go into **your copy's** `results/differential_expression/<job-id>/`, not the service account or GitHub. This example tests input/output plumbing only; the small subset has no biological statistical power and no DNA VCF for ASE. See `examples/Calbicans_WT_YL_HL/README.md` inside the extracted archive.
 
 ## What this download does not include
 
